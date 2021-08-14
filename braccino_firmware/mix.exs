@@ -15,7 +15,9 @@ defmodule BraccinoFirmware.MixProject do
       build_embedded: true,
       deps: deps(),
       releases: [{@app, release()}],
-      preferred_cli_target: [run: :host, test: :host]
+      preferred_cli_target: [run: :host, test: :host],
+      compilers: [:elixir_make] ++ Mix.compilers,
+      make_clean: ["clean"]
     ]
   end
 
@@ -32,6 +34,7 @@ defmodule BraccinoFirmware.MixProject do
     [
       # Dependencies for all targets
       {:nerves, "~> 1.7.0", runtime: false},
+      {:elixir_make, "~> 0.6.2", runtime: false},
       {:shoehorn, "~> 0.7.0"},
       {:ring_logger, "~> 0.8.1"},
       {:toolshed, "~> 0.2.13"},
