@@ -1,20 +1,29 @@
 #include <PacketSerial.h>
 
+#include "braccio.h"
+
 PacketSerial packetSerial;
+Braccio braccio;
 
 int ledState = LOW;
 
 void setup() {
+  // Initialize seria connection
   packetSerial.begin(38400);
   packetSerial.setPacketHandler(&onPacketReceived);
 
-  pinMode(LED_BUILTIN, OUTPUT);
+  // Inintialize braccio
+  braccio.begin();
 
+  // Communicate that we are ready to accept commands
   uint8_t data[] = {0x00};
   packetSerial.send(data, sizeof(data));
 }
 
-void loop() { packetSerial.update(); }
+void loop() {
+  packetSerial.update();
+  braccio.step();
+}
 
 void onPacketReceived(const uint8_t *buffer, size_t size) {
   if (size == 0) return;
@@ -32,15 +41,10 @@ void onSetAngles(const uint8_t *buffer, size_t size) {
   if (size != 7) return;
 
   // skip the packetId (buffer[0])
-  int base = buffer[1];
-  int shoulder = buffer[2];
-  int elbow = buffer[3];
-  int wrist_ver = buffer[4];
-  int wrist_rot = buffer[5];
-  int gripper = buffer[6];
-
-  // TODO: set braccio servos
-  // for now invert the led just to show that the packet has been received
-  digitalWrite(LED_BUILTIN, ledState);
-  ledState = ledState == LOW ? HIGH : LOW;
+  braccio.targetAngles.base = buffer[1];
+  braccio.targetAngles.shoulder = buffer[2];
+  braccio.targetAngles.elbow = buffer[3];
+  braccio.targetAngles.wrist_ver = buffer[4];
+  braccio.targetAngles.wrist_rot = buffer[5];
+  braccio.targetAngles.gripper = buffer[6];
 }
