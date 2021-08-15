@@ -10,6 +10,7 @@ defmodule Braccino.Application do
     children = [
       # Starts a worker by calling: Braccino.Worker.start_link(arg)
       # {Braccino.Worker, arg}
+      Braccino.Braccio
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

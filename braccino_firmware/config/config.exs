@@ -31,3 +31,6 @@ if Mix.target() == :host or Mix.target() == :"" do
 else
   import_config "target.exs"
 end
+
+# Braccino config
+config :braccino, Braccino.Braccio, implementation: Braccino.Braccio.Mock
