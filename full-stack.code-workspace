@@ -16,5 +16,54 @@
   },
   "settings": {
     "C_Cpp.clang_format_fallbackStyle": "Google"
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "ui static files",
+        "type": "shell",
+        "command": "npm run deploy --prefix assets && mix phx.digest",
+        "options": {
+          // NOTE: `workspaceFolder` is the fist folder in the workspace
+          "cwd": "${workspaceFolder}/../braccino_ui"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "build firmware",
+        "type": "shell",
+        "command": "mix firmware",
+        "options": {
+          "env": {
+            "MIX_TARGET": "rpi3"
+          }
+        },
+        "dependsOn": ["ui static files"],
+        "dependsOrder": "sequence",
+        "problemMatcher": []
+      },
+      {
+        "label": "upload firmware",
+        "type": "shell",
+        "command": "mix upload",
+        "options": {
+          "env": {
+            "MIX_TARGET": "rpi3"
+          }
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "deploy",
+        "dependsOn": ["build firmware", "upload firmware"],
+        "dependsOrder": "sequence",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": []
+      }
+    ]
   }
 }
