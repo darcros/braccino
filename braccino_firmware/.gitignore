@@ -18,3 +18,6 @@ erl_crash.dump
 
 # The directory where arduino-cli will write compiled artifacts to.
 /arduino-sketch/build/
+
+# The direcory where make caches the downloaded `bossac` executable.
+/.download_cache/
