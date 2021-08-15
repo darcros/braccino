@@ -1,19 +1,9 @@
 defmodule Braccino.Braccio.Angles do
-  @moduledoc """
-  Module Angles contains a struct representing the angles of the Braccio.
-  """
+  use Ecto.Schema
+  import Ecto.Changeset
 
-  # the range of each angle and its default position
-  @angles %{
-    base: {0..180, 0},
-    shoulder: {15..165, 45},
-    elbow: {0..180, 180},
-    wrist_ver: {0..180, 180},
-    wrist_rot: {0..180, 90},
-    gripper: {10..73, 10}
-  }
+  @primary_key false
 
-  @type angle_name :: :base | :shoulder | :elbow | :wrist_ver | :wrist_rot | :gripper
   @type t :: %__MODULE__{
           base: integer,
           shoulder: integer,
@@ -22,47 +12,31 @@ defmodule Braccino.Braccio.Angles do
           wrist_rot: integer,
           gripper: integer
         }
-  defstruct Enum.map(@angles, fn {name, {_range, default}} -> {name, default} end)
 
-  @spec in_range?(name :: angle_name, angle :: integer) :: boolean
-  def in_range?(name, angle) do
-    {range, _default} = Map.fetch!(@angles, name)
-    angle in range
+  schema "Angles" do
+    field :base, :integer, default: 0
+    field :shoulder, :integer, default: 45
+    field :elbow, :integer, default: 180
+    field :wrist_ver, :integer, default: 180
+    field :wrist_rot, :integer, default: 90
+    field :gripper, :integer, default: 10
   end
 
-  @spec validate(Braccino.Braccio.Angles.t()) ::
-          {:error, {:out_of_range, [angle_name]}} | :ok
-  def validate(angles = %__MODULE__{}) do
-    out_of_range =
-      @angles
-      |> Map.keys()
-      |> Enum.filter(fn name ->
-        angle = Map.fetch!(angles, name)
-        not in_range?(name, angle)
-      end)
-
-    case out_of_range do
-      [] -> :ok
-      _ -> {:error, {:out_of_range, out_of_range}}
-    end
+  def new(raw_map) do
+    %__MODULE__{}
+    |> changeset(raw_map)
+    |> apply_action(:update)
   end
 
-  @spec is_valid?(angles :: Braccino.Braccio.Angles.t()) :: boolean
-  def is_valid?(angles = %__MODULE__{}) do
-    case validate(angles) do
-      :ok -> true
-      _ -> false
-    end
-  end
-
-  @spec new(any) ::
-          {:error, {:out_of_range, [angle_name]}} | {:ok, Braccino.Braccio.Angles.t()}
-  def new(angles) do
-    angles_struct = struct(__MODULE__, angles)
-
-    case validate(angles_struct) do
-      :ok -> {:ok, angles_struct}
-      error -> error
-    end
+  def changeset(base, raw_map) do
+    base
+    |> cast(raw_map, [:base, :shoulder, :elbow, :wrist_ver, :wrist_rot, :gripper])
+    |> validate_required([:base, :shoulder, :elbow, :wrist_ver, :wrist_rot, :gripper])
+    |> validate_inclusion(:base, 0..180)
+    |> validate_inclusion(:shoulder, 15..165)
+    |> validate_inclusion(:elbow, 0..180)
+    |> validate_inclusion(:wrist_ver, 0..180)
+    |> validate_inclusion(:wrist_rot, 0..180)
+    |> validate_inclusion(:gripper, 10..73)
   end
 end

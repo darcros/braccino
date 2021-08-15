@@ -164,15 +164,7 @@ defmodule Braccino.Braccio do
 
   @impl true
   def handle_call({:set_angles, angles}, _from, %{connected: true} = state) do
-    {reply, impl_state} =
-      case Angles.validate(angles) do
-        :ok ->
-          state.impl.set_angles(angles, state.impl_state)
-
-        reply ->
-          {reply, state.impl_state}
-      end
-
+    {reply, impl_state} = state.impl.set_angles(angles, state.impl_state)
     {:reply, reply, %{state | impl_state: impl_state}}
   end
 

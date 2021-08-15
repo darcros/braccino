@@ -26,23 +26,7 @@ defmodule BraccinoUiWeb.PageLive do
 
   @impl true
   def handle_event("angles", params, socket) do
-    # params are passed as strings, so we need to parse them
-    # it is very important that we check the name before coverting it to an atom
-    # TODO: use ecto to cast the parameters instead of doing it by hand
-    parsed_params =
-      for {name, angle} <- params,
-          name in [
-            "base",
-            "shoulder",
-            "elbow",
-            "wrist_ver",
-            "wrist_rot",
-            "gripper"
-          ],
-          into: %{},
-          do: {String.to_atom(name), String.to_integer(angle)}
-
-    {:ok, angles} = Angles.new(parsed_params)
+    {:ok, angles} = Angles.new(params)
     :ok = Braccio.set_angles(angles)
 
     {:noreply, assign(socket, angles: angles)}
