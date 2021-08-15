@@ -98,3 +98,6 @@ config :mdns_lite,
 # Uncomment to use target specific configurations
 
 # import_config "#{Mix.target()}.exs"
+
+# Import Phoenix config
+import_config "target.phoenix.exs"

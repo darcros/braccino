@@ -39,6 +39,7 @@ defmodule BraccinoFirmware.MixProject do
       {:ring_logger, "~> 0.8.1"},
       {:toolshed, "~> 0.2.13"},
       {:circuits_uart, "~> 1.3"},
+      {:braccino_ui, path: "../braccino_ui", targets: @all_targets, env: Mix.env()},
 
       # Dependencies for all targets except :host
       {:nerves_runtime, "~> 0.11.3", targets: @all_targets},
