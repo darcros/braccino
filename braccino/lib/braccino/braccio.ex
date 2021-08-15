@@ -65,16 +65,6 @@ defmodule Braccino.Braccio do
   end
 
   @doc """
-  Upload the firmware to the braccio.
-
-  Will return an error if called when the braccio is connected.
-  """
-  @spec upload_firmware() :: :ok | {:error, reason()}
-  def upload_firmware() do
-    GenServer.call(__MODULE__, :upload_firmware, 30_000)
-  end
-
-  @doc """
   Connec to the bracio.
 
   This function blocks until the braccio is ready to accept commands.
@@ -119,18 +109,19 @@ defmodule Braccino.Braccio do
   def init(args) do
     impl = Keyword.fetch!(args, :implementation)
     {:ok, impl_state} = impl.init(args)
-    {:ok, %{impl: impl, impl_state: impl_state, connected: false}}
+
+    {
+      :ok,
+      %{impl: impl, impl_state: impl_state, connected: false},
+      {:continue, :upload_firmware}
+    }
   end
 
   @impl true
-  def handle_call(:upload_firmware, _from, %{connected: false} = state) do
-    {reply, impl_state} = state.impl.upload_firmware(state.impl_state)
-    {:reply, reply, %{state | impl_state: impl_state}}
+  def handle_continue(:upload_firmware, state) do
+    {:ok, impl_state} = state.impl.upload_firmware(state.impl_state)
+    {:noreply, %{state | impl_state: impl_state}}
   end
-
-  @impl true
-  def handle_call(:upload_firmware, _from, %{connected: true} = state),
-    do: {:reply, {:error, :connected}, state}
 
   @impl true
   def handle_call(:connect, _from, %{connected: false} = state) do
