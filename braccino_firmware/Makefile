@@ -60,7 +60,7 @@ $(OUTPUT)/bossac: $(CACHE_DIR)/downloads/bossac $(OUTPUT)/.noscrub
 #   this way onyly the bossac executable gets extracted
 $(CACHE_DIR)/downloads/bossac:
 	mkdir -p $(CACHE_DIR)/downloads
-	wget -c $(BOSSAC_DOWNLOAD_URL) -O - | tar -xz --strip-components=1 -C $(DOWNLOAD_CACHE_DIR)
+	wget -c $(BOSSAC_DOWNLOAD_URL) -O - | tar -xz --strip-components=1 -C $(CACHE_DIR)/downloads
 
 # The .noscrub file is need to make nerves stop complaining about the
 #   fact that bossac is not compiled for the target architecture,
