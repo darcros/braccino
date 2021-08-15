@@ -101,3 +101,9 @@ config :mdns_lite,
 
 # Import Phoenix config
 import_config "target.phoenix.exs"
+
+# Braccino config
+config :braccino, Braccino.Braccio,
+  implementation: BraccinoFirmware.BraccioImpl,
+  port: "ttyACM0",
+  baud_rate: 38400

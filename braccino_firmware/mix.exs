@@ -16,7 +16,7 @@ defmodule BraccinoFirmware.MixProject do
       deps: deps(),
       releases: [{@app, release()}],
       preferred_cli_target: [run: :host, test: :host],
-      compilers: [:elixir_make] ++ Mix.compilers,
+      compilers: [:elixir_make] ++ Mix.compilers(),
       make_clean: ["clean"]
     ]
   end
@@ -39,6 +39,7 @@ defmodule BraccinoFirmware.MixProject do
       {:ring_logger, "~> 0.8.1"},
       {:toolshed, "~> 0.2.13"},
       {:circuits_uart, "~> 1.3"},
+      {:cobs, "~> 0.2.0"},
       {:braccino, path: "../braccino", targets: @all_targets},
       {:braccino_ui, path: "../braccino_ui", targets: @all_targets},
 
