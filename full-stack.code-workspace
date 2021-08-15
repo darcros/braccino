@@ -5,6 +5,9 @@
     },
     {
       "path": "braccino_ui"
+    },
+    {
+      "path": "braccino"
     }
   ],
   "extensions": {
