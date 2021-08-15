@@ -1,48 +1,37 @@
 <section class="phx-hero">
-  <h1><%= gettext "Welcome to %{name}!", name: "Phoenix" %></h1>
-  <p>Peace of mind from prototype to production</p>
+  <%= case @status do %>
+    <% :connecting -> %>
+      <h1>Connecting</h1>
 
-  <form phx-change="suggest" phx-submit="search">
-    <input type="text" name="q" value="<%= @query %>" placeholder="Live dependency search" list="results" autocomplete="off"/>
-    <datalist id="results">
-      <%= for {app, _vsn} <- @results do %>
-        <option value="<%= app %>"><%= app %></option>
-      <% end %>
-    </datalist>
-    <button type="submit" phx-disable-with="Searching...">Go to Hexdocs</button>
-  </form>
-</section>
+    <% :connected -> %>
+      <form phx-change="angles">
+        <label for="base">base: <%= @angles.base %></label>
+        <input id="base" name="base" type="range" min="0" max="180" value="<%= @angles.base %>" />
 
-<section class="row">
-  <article class="column">
-    <h2>Resources</h2>
-    <ul>
-      <li>
-        <a href="https://hexdocs.pm/phoenix/overview.html">Guides &amp; Docs</a>
-      </li>
-      <li>
-        <a href="https://github.com/phoenixframework/phoenix">Source</a>
-      </li>
-      <li>
-        <a href="https://github.com/phoenixframework/phoenix/blob/v1.5/CHANGELOG.md">v1.5 Changelog</a>
-      </li>
-    </ul>
-  </article>
-  <article class="column">
-    <h2>Help</h2>
-    <ul>
-      <li>
-        <a href="https://elixirforum.com/c/phoenix-forum">Forum</a>
-      </li>
-      <li>
-        <a href="https://webchat.freenode.net/?channels=elixir-lang">#elixir-lang on Freenode IRC</a>
-      </li>
-      <li>
-        <a href="https://twitter.com/elixirphoenix">Twitter @elixirphoenix</a>
-      </li>
-      <li>
-        <a href="https://elixir-slackin.herokuapp.com/">Elixir on Slack</a>
-      </li>
-    </ul>
-  </article>
+        <br />
+
+        <label for="shoulder">shoulder: <%= @angles.shoulder %></label>
+        <input id="shoulder" name="shoulder" type="range" min="15" max="165" value="<%= @angles.shoulder %>" />
+
+        <br />
+
+        <label for="elbow">elbow: <%= @angles.elbow %></label>
+        <input id="elbow" name="elbow" type="range" min="0" max="180" value="<%= @angles.elbow %>" />
+
+        <br />
+
+        <label for="wrist_ver">wrist_ver: <%= @angles.wrist_ver %></label>
+        <input id="wrist_ver" name="wrist_ver" type="range" min="0" max="180" value="<%= @angles.wrist_ver %>" />
+
+        <br />
+
+        <label for="wrist_rot">wrist_rot: <%= @angles.wrist_rot %></label>
+        <input id="wrist_rot" name="wrist_rot" type="range" min="0" max="180" value="<%= @angles.wrist_rot %>" />
+
+        <br />
+
+        <label for="gripper">gripper: <%= @angles.gripper %></label>
+        <input id="gripper" name="gripper" type="range" min="10" max="73" value="<%= @angles.gripper %>" />
+      </form>
+  <% end %>
 </section>
