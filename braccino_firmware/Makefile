@@ -9,7 +9,7 @@
 
 FQBN = arduino:sam:arduino_due_x_dbg
 SKETCH = $(abspath ./arduino-sketch)
-DOWNLOAD_CACHE_DIR = $(abspath ./.download_cache)
+CACHE_DIR = $(abspath ./.make_cache)
 OUTPUT = $(MIX_APP_PATH)/priv
 
 SKETCH_NAME = $(shell basename $(SKETCH))
@@ -26,7 +26,7 @@ SKETCH_FILES += $(wildcard $(SKETCH)/*.c)
 ifneq ($(TARGET_ARCH)$(TARGET_OS)$(TARGET_ABI),)
 
 BOSSAC_DOWNLOAD_URL = https://github.com/shumatech/BOSSA/releases/download/1.7.0/bossac-1.7.0-$(TARGET_ARCH)-$(TARGET_OS)-$(TARGET_ABI).tar.gz
-all: compile download-bossac
+all: requirements compile download-bossac
 .PHONY: all
 
 else
@@ -34,7 +34,7 @@ else
 $(warning "Skipping bossac download because TARGET_* variables are not set. \
   If you are compiling the nerves firmware this will make the program crash at \
   runtime, otherwise its probably be fine.")
-all: compile
+all: requirements compile
 .PHONY: all
 
 endif
@@ -52,14 +52,14 @@ $(OUTPUT)/$(BIN_FILE): $(SKETCH_FILES)
 download-bossac: $(OUTPUT)/bossac
 .PHONY: download-bossac
 
-$(OUTPUT)/bossac: $(DOWNLOAD_CACHE_DIR)/bossac $(OUTPUT)/.noscrub
+$(OUTPUT)/bossac: $(CACHE_DIR)/downloads/bossac $(OUTPUT)/.noscrub
 	mkdir -p $(OUTPUT)
 	cp $< $@
 
 # The --strip-components=1 flag removes the folder inside the .tar.gz archive,
 #   this way onyly the bossac executable gets extracted
-$(DOWNLOAD_CACHE_DIR)/bossac:
-	mkdir -p $(DOWNLOAD_CACHE_DIR)
+$(CACHE_DIR)/downloads/bossac:
+	mkdir -p $(CACHE_DIR)/downloads
 	wget -c $(BOSSAC_DOWNLOAD_URL) -O - | tar -xz --strip-components=1 -C $(DOWNLOAD_CACHE_DIR)
 
 # The .noscrub file is need to make nerves stop complaining about the
@@ -67,6 +67,15 @@ $(DOWNLOAD_CACHE_DIR)/bossac:
 #   even though IT IS
 $(OUTPUT)/.noscrub:
 	touch $@
+
+
+requirements: $(CACHE_DIR)/.requirements
+.PHONY: requirements
+
+$(CACHE_DIR)/.requirements: $(SKETCH)/requirements.txt
+	mkdir -p $(CACHE_DIR)
+	echo "this file is just a placeholder to ensure that make does not run this recipe every single time" > $@
+	xargs -n 1 arduino-cli lib install < $<
 
 
 clean:

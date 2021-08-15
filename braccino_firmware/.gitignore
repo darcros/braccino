@@ -20,4 +20,4 @@ erl_crash.dump
 /arduino-sketch/build/
 
 # The direcory where make caches the downloaded `bossac` executable.
-/.download_cache/
+/.make_cache/
