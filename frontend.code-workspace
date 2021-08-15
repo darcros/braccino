@@ -1,0 +1,11 @@
+{
+  "folders": [
+    {
+      "path": "braccino_ui"
+    }
+  ],
+  "extensions": {
+    "recommendations": ["JakeBecker.elixir-ls", "esbenp.prettier-vscode"]
+  },
+  "settings": {}
+}

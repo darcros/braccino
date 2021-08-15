@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "path": "braccino_firmware"
+    },
+    {
+      "path": "braccino_ui"
+    }
+  ],
+  "extensions": {
+    "recommendations": [
+      "JakeBecker.elixir-ls",
+      "vsciot-vscode.vscode-arduino",
+      "esbenp.prettier-vscode"
+    ]
+  },
+  "settings": {
+    "C_Cpp.clang_format_fallbackStyle": "Google"
+  }
+}
