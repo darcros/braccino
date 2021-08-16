@@ -8,14 +8,22 @@ defmodule BraccinoUiWeb.PageLive do
   def mount(_params, _session, socket) do
     # TODO:
     # - update page when status changes
-    # - allow one user at a time to use the page
+
+    # `page status` can contain any of the values that can be returned by
+    # `Braccio.current_status/0` but also the atom `:busy` in case the live
+    #  view cannot acquire control of the braccio
+    page_status =
+      case Braccio.acquire_control() do
+        :ok -> Braccio.current_status()
+        _ -> :busy
+      end
 
     {
       :ok,
       assign(
         socket,
         angles: %Angles{},
-        status: Braccio.current_status()
+        page_status: page_status
       )
     }
   end

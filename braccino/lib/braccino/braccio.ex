@@ -71,6 +71,16 @@ defmodule Braccino.Braccio do
   end
 
   @doc """
+  Registers the calling prcocess as the current user of the braccio.
+  Only on process can use the braccio at a time.
+  Calling this function when another process is using it will return `{:error, :busy}`.
+  """
+  @spec acquire_control() :: :ok | {:error, reason()}
+  def acquire_control() do
+    GenServer.call(__MODULE__, :acquire_control)
+  end
+
+  @doc """
   Set the angles of the braccio.
 
   Will return an error if called when the braccio is not connected.
@@ -90,7 +100,9 @@ defmodule Braccino.Braccio do
       impl: impl,
       impl_state: impl_state,
       status: :disconnected,
-      task: nil
+      task: nil,
+      user_pid: nil,
+      user_ref: nil
     }
 
     {:ok, state, {:continue, :upload_firmware}}
@@ -153,8 +165,8 @@ defmodule Braccino.Braccio do
     end
   end
 
-  # if a task fails...
-  def handle_info({:DOWN, _ref, _, _, reason}, state) do
+  # handle task crashing
+  def handle_info({:DOWN, ref, :process, _pid, reason}, state) when ref == state.task.ref do
     case state.status do
       :uploading_firmware ->
         Logger.error("Task crashed while uploading firmware: #{inspect(reason)}")
@@ -167,16 +179,41 @@ defmodule Braccino.Braccio do
     {:noreply, state}
   end
 
+  # handle user process crashing
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, state)
+      when ref == state.user_ref do
+    state = %{state | user_pid: nil, user_ref: nil}
+    {:noreply, state}
+  end
+
   def handle_call(:current_status, _from, state) do
     {:reply, state.status, state}
   end
 
-  def handle_call({:set_angles, angles}, _from, state) when state.status == :connected do
-    {reply, impl_state} = state.impl.set_angles(angles, state.impl_state)
-    state = %{state | impl_state: impl_state}
-    {:reply, reply, state}
+  def handle_call(:acquire_control, {pid, _tag}, state) do
+    case state do
+      %{user_pid: nil, user_ref: nil} ->
+        ref = Process.monitor(pid)
+        state = %{state | user_pid: pid, user_ref: ref}
+        {:reply, :ok, state}
+
+      %{} ->
+        {:reply, {:error, :busy}, state}
+    end
   end
 
-  def handle_call({:set_angles, _angles}, _from, state),
-    do: {:reply, {:error, :not_connected}, state}
+  def handle_call({:set_angles, angles}, {pid, _tag}, state) do
+    case state do
+      %{user_pid: ^pid, status: :connected} ->
+        {reply, impl_state} = state.impl.set_angles(angles, state.impl_state)
+        state = %{state | impl_state: impl_state}
+        {:reply, reply, state}
+
+      %{user_pid: ^pid} ->
+        {:reply, {:error, :not_connected}, state}
+
+      %{} ->
+        {:reply, {:error, :unauthorized}, state}
+    end
+  end
 end

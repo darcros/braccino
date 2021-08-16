@@ -1,7 +1,10 @@
 <section class="phx-hero">
-  <%= case @status do %>
+  <%= case @page_status do %>
     <% :error -> %>
       <h1>There has been an error. 🙁</h1>
+
+    <% :busy -> %>
+      <h1>The braccio is being controlled by another user.</h1>
 
     <% :disconected -> %>
       <h1>The braccio is disconnected, it will connected shortly.</h1>
