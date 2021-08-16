@@ -1,7 +1,16 @@
 <section class="phx-hero">
   <%= case @status do %>
+    <% :error -> %>
+      <h1>There has been an error. 🙁</h1>
+
+    <% :disconected -> %>
+      <h1>The braccio is disconnected, it will connected shortly.</h1>
+
+    <% :uploading_firmware -> %>
+      <h1>Uploading firmware to the braccio...</h1>
+
     <% :connecting -> %>
-      <h1>Connecting</h1>
+      <h1>Connecting to the braccio...</h1>
 
     <% :connected -> %>
       <form phx-change="angles">

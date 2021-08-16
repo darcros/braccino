@@ -6,22 +6,18 @@ defmodule BraccinoUiWeb.PageLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    if Braccio.connected?() do
-      :ok = Braccio.disconnect()
-    end
+    # TODO:
+    # - update page when status changes
+    # - allow one user at a time to use the page
 
-    send(self(), :connect)
-    {:ok, assign(socket, angles: %Angles{}, status: :connecting)}
-  end
-
-  @impl true
-  def handle_info(:connect, socket) do
-    :ok = Braccio.connect()
-
-    # set the initial angles
-    :ok = Braccio.set_angles(socket.assigns.angles)
-
-    {:noreply, assign(socket, status: :connected)}
+    {
+      :ok,
+      assign(
+        socket,
+        angles: %Angles{},
+        status: Braccio.current_status()
+      )
+    }
   end
 
   @impl true

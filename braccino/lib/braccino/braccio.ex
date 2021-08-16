@@ -4,11 +4,12 @@ defmodule Braccino.Braccio do
   """
 
   alias Braccino.Braccio.Angles
-
-  # behaviour definition
+  require Logger
+  use GenServer
 
   @type reason :: term
   @type impl_state :: term
+  @type braccio_status :: :disconnected | :uploading_firmware | :connecting | :connected | :error
 
   @doc """
   Initialize the state of the braccio based on the options in the config.
@@ -54,43 +55,19 @@ defmodule Braccino.Braccio do
   @callback set_angles(angles :: Angles.t(), state :: impl_state()) ::
               {:ok, impl_state()} | {{:error, reason()}, impl_state()}
 
-  # genserver public functions
+  # client API
 
-  use GenServer
-
-  @args Application.compile_env(:braccino, __MODULE__)
-
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, @args, name: __MODULE__)
+  def start_link(args) do
+    env_args = Application.get_env(:braccino, __MODULE__)
+    GenServer.start_link(__MODULE__, args ++ env_args, name: __MODULE__)
   end
 
   @doc """
-  Connec to the bracio.
-
-  This function blocks until the braccio is ready to accept commands.
-  Will return an error if called when the braccio is connected.
+  Returns the current status of the braccio.
   """
-  @spec connect() :: :ok | {:error, reason()}
-  def connect() do
-    GenServer.call(__MODULE__, :connect, 10_000)
-  end
-
-  @doc """
-  Disconnect from the braccio.
-
-  Will return an error if called when the braccio is not connected.
-  """
-  @spec disconnect() :: :ok | {:error, reason()}
-  def disconnect do
-    GenServer.call(__MODULE__, :disconnect, 1000)
-  end
-
-  @doc """
-  Returns whether the braccio is connected.
-  """
-  @spec connected?() :: boolean
-  def connected?() do
-    GenServer.call(__MODULE__, :connected?)
+  @spec current_status() :: braccio_status()
+  def current_status() do
+    GenServer.call(__MODULE__, :current_status)
   end
 
   @doc """
@@ -100,75 +77,106 @@ defmodule Braccino.Braccio do
   """
   @spec set_angles(Angles.t()) :: :ok | {:error, reason()}
   def set_angles(angles = %Angles{}) do
-    GenServer.call(__MODULE__, {:set_angles, angles}, 1000)
+    GenServer.call(__MODULE__, {:set_angles, angles})
   end
 
-  # genserver callbacks
+  # callbacks
 
-  @impl true
   def init(args) do
     impl = Keyword.fetch!(args, :implementation)
     {:ok, impl_state} = impl.init(args)
 
-    {
-      :ok,
-      %{impl: impl, impl_state: impl_state, connected: false},
-      {:continue, :upload_firmware}
+    state = %{
+      impl: impl,
+      impl_state: impl_state,
+      status: :disconnected,
+      task: nil
     }
+
+    {:ok, state, {:continue, :upload_firmware}}
   end
 
-  @impl true
-  def handle_continue(:upload_firmware, state) do
-    {:ok, impl_state} = state.impl.upload_firmware(state.impl_state)
-    {:noreply, %{state | impl_state: impl_state}}
+  # start a task to upload the firmware
+  def handle_continue(:upload_firmware, %{status: :disconnected, task: nil} = state) do
+    task =
+      Task.Supervisor.async_nolink(Braccino.TaskSupervisor, fn ->
+        state.impl.upload_firmware(state.impl_state)
+      end)
+
+    {:noreply, %{state | status: :uploading_firmware, task: task}}
   end
 
-  @impl true
-  def handle_call(:connect, _from, %{connected: false} = state) do
-    {reply, impl_state} = state.impl.connect(state.impl_state)
+  # start a task to connect to the braccio
+  def handle_continue(:connect, %{status: :disconnected, task: nil} = state) do
+    task =
+      Task.Supervisor.async_nolink(Braccino.TaskSupervisor, fn ->
+        state.impl.connect(state.impl_state)
+      end)
 
-    connected =
-      case reply do
-        :ok -> true
-        _ -> false
-      end
-
-    {:reply, reply, %{state | connected: connected, impl_state: impl_state}}
+    {:noreply, %{state | status: :connecting, task: task}}
   end
 
-  @impl true
-  def handle_call(:connect, _from, %{connected: true} = state),
-    do: {:reply, {:error, :already_connected}, state}
+  # handle the result of the task that uploads the firmware
+  # if the task is successful, connect to the braccio
+  def handle_info({ref, result}, %{status: :uploading_firmware} = state) do
+    # The task succeed so we can cancel the monitoring and discard the DOWN message
+    Process.demonitor(ref, [:flush])
 
-  @impl true
-  def handle_call(:disconnect, _from, %{connected: true} = state) do
-    {reply, impl_state} = state.impl.disconnect(state.impl_state)
+    case result do
+      {:ok, impl_state} ->
+        state = %{state | impl_state: impl_state, status: :disconnected, task: nil}
+        {:noreply, state, {:continue, :connect}}
 
-    connected =
-      case reply do
-        :ok -> false
-        _ -> true
-      end
+      {{:error, reason}, impl_state} ->
+        Logger.error("Failed to upload arduino firmware: #{inspect(reason)}")
 
-    {:reply, reply, %{state | connected: connected, impl_state: impl_state}}
+        state = %{state | impl_state: impl_state, status: :error, task: nil}
+        {:noreply, state}
+    end
   end
 
-  @impl true
-  def handle_call(:disconnect, _from, %{connected: false} = state),
-    do: {:reply, {:error, :not_connected}, state}
+  # handle the result of the task that connects to the braccio
+  def handle_info({ref, result}, %{status: :connecting} = state) do
+    # The task succeed so we can cancel the monitoring and discard the DOWN message
+    Process.demonitor(ref, [:flush])
 
-  @impl true
-  def handle_call(:connected?, _from, state) do
-    {:reply, state.connected, state}
+    case result do
+      {:ok, impl_state} ->
+        state = %{state | impl_state: impl_state, status: :connected, task: nil}
+        {:noreply, state}
+
+      {{:error, reason}, impl_state} ->
+        Logger.error("Failed to connecte to braccio: #{inspect(reason)}")
+
+        state = %{state | impl_state: impl_state, status: :error, task: nil}
+        {:noreply, state}
+    end
   end
 
-  @impl true
-  def handle_call({:set_angles, angles}, _from, %{connected: true} = state) do
+  # if a task fails...
+  def handle_info({:DOWN, _ref, _, _, reason}, state) do
+    case state.status do
+      :uploading_firmware ->
+        Logger.error("Task crashed while uploading firmware: #{inspect(reason)}")
+
+      :connecting ->
+        Logger.error("Task crashed while connecting: #{inspect(reason)}")
+    end
+
+    state = %{state | status: :error, task: nil}
+    {:noreply, state}
+  end
+
+  def handle_call(:current_status, _from, state) do
+    {:reply, state.status, state}
+  end
+
+  def handle_call({:set_angles, angles}, _from, state) when state.status == :connected do
     {reply, impl_state} = state.impl.set_angles(angles, state.impl_state)
-    {:reply, reply, %{state | impl_state: impl_state}}
+    state = %{state | impl_state: impl_state}
+    {:reply, reply, state}
   end
 
-  @impl true
-  def handle_call({:set_angles, _angles}, _from, %{connected: false} = state),
+  def handle_call({:set_angles, _angles}, _from, state),
     do: {:reply, {:error, :not_connected}, state}
 end
