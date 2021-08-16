@@ -6,9 +6,6 @@ defmodule BraccinoUiWeb.PageLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    # TODO:
-    # - update page when status changes
-
     # `page status` can contain any of the values that can be returned by
     # `Braccio.current_status/0` but also the atom `:busy` in case the live
     #  view cannot acquire control of the braccio
@@ -26,6 +23,11 @@ defmodule BraccinoUiWeb.PageLive do
         page_status: page_status
       )
     }
+  end
+
+  @impl true
+  def handle_info({:braccio_status, status}, socket) do
+    {:noreply, assign(socket, page_status: status)}
   end
 
   @impl true

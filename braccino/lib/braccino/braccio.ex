@@ -117,6 +117,7 @@ defmodule Braccino.Braccio do
         state.impl.upload_firmware(state.impl_state)
       end)
 
+    notify_status_change(state.user_pid, :uploading_firmware)
     {:noreply, %{state | status: :uploading_firmware, task: task}}
   end
 
@@ -128,6 +129,7 @@ defmodule Braccino.Braccio do
         state.impl.connect(state.impl_state)
       end)
 
+    notify_status_change(state.user_pid, :connecting)
     {:noreply, %{state | status: :connecting, task: task}}
   end
 
@@ -140,12 +142,14 @@ defmodule Braccino.Braccio do
 
     case result do
       {:ok, impl_state} ->
+        notify_status_change(state.user_pid, :disconnected)
         state = %{state | impl_state: impl_state, status: :disconnected, task: nil}
         {:noreply, state, {:continue, :connect}}
 
       {{:error, reason}, impl_state} ->
         Logger.error("Failed to upload arduino firmware: #{inspect(reason)}")
 
+        notify_status_change(state.user_pid, :error)
         state = %{state | impl_state: impl_state, status: :error, task: nil}
         {:noreply, state}
     end
@@ -159,12 +163,14 @@ defmodule Braccino.Braccio do
 
     case result do
       {:ok, impl_state} ->
+        notify_status_change(state.user_pid, :connected)
         state = %{state | impl_state: impl_state, status: :connected, task: nil}
         {:noreply, state}
 
       {{:error, reason}, impl_state} ->
         Logger.error("Failed to connecte to braccio: #{inspect(reason)}")
 
+        notify_status_change(state.user_pid, :error)
         state = %{state | impl_state: impl_state, status: :error, task: nil}
         {:noreply, state}
     end
@@ -181,6 +187,7 @@ defmodule Braccino.Braccio do
         Logger.error("Task crashed while connecting: #{inspect(reason)}")
     end
 
+    notify_status_change(state.user_pid, :error)
     state = %{state | status: :error, task: nil}
     {:noreply, state}
   end
@@ -224,6 +231,16 @@ defmodule Braccino.Braccio do
 
       %{} ->
         {:reply, {:error, :unauthorized}, state}
+    end
+  end
+
+  defp notify_status_change(pid, status) do
+    case pid do
+      nil ->
+        :ok
+
+      _pid ->
+        send(pid, {:braccio_status, status})
     end
   end
 end
