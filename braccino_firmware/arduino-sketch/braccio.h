@@ -52,7 +52,7 @@ class Braccio {
    * If the `step()` method is called in an interval that is smalled tahn this
    * number it will have no effect.
    */
-  int stepDelay = 30;
+  int stepDelay = 10;
 
   /**
    * Initialize braccio
