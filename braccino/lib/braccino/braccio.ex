@@ -92,6 +92,7 @@ defmodule Braccino.Braccio do
 
   # callbacks
 
+  @impl true
   def init(args) do
     impl = Keyword.fetch!(args, :implementation)
     {:ok, impl_state} = impl.init(args)
@@ -109,6 +110,7 @@ defmodule Braccino.Braccio do
   end
 
   # start a task to upload the firmware
+  @impl true
   def handle_continue(:upload_firmware, %{status: :disconnected, task: nil} = state) do
     task =
       Task.Supervisor.async_nolink(Braccino.TaskSupervisor, fn ->
@@ -119,6 +121,7 @@ defmodule Braccino.Braccio do
   end
 
   # start a task to connect to the braccio
+  @impl true
   def handle_continue(:connect, %{status: :disconnected, task: nil} = state) do
     task =
       Task.Supervisor.async_nolink(Braccino.TaskSupervisor, fn ->
@@ -130,6 +133,7 @@ defmodule Braccino.Braccio do
 
   # handle the result of the task that uploads the firmware
   # if the task is successful, connect to the braccio
+  @impl true
   def handle_info({ref, result}, %{status: :uploading_firmware} = state) do
     # The task succeed so we can cancel the monitoring and discard the DOWN message
     Process.demonitor(ref, [:flush])
@@ -148,6 +152,7 @@ defmodule Braccino.Braccio do
   end
 
   # handle the result of the task that connects to the braccio
+  @impl true
   def handle_info({ref, result}, %{status: :connecting} = state) do
     # The task succeed so we can cancel the monitoring and discard the DOWN message
     Process.demonitor(ref, [:flush])
@@ -166,6 +171,7 @@ defmodule Braccino.Braccio do
   end
 
   # handle task crashing
+  @impl true
   def handle_info({:DOWN, ref, :process, _pid, reason}, state) when ref == state.task.ref do
     case state.status do
       :uploading_firmware ->
@@ -180,16 +186,19 @@ defmodule Braccino.Braccio do
   end
 
   # handle user process crashing
+  @impl true
   def handle_info({:DOWN, ref, :process, _pid, _reason}, state)
       when ref == state.user_ref do
     state = %{state | user_pid: nil, user_ref: nil}
     {:noreply, state}
   end
 
+  @impl true
   def handle_call(:current_status, _from, state) do
     {:reply, state.status, state}
   end
 
+  @impl true
   def handle_call(:acquire_control, {pid, _tag}, state) do
     case state do
       %{user_pid: nil, user_ref: nil} ->
@@ -202,6 +211,7 @@ defmodule Braccino.Braccio do
     end
   end
 
+  @impl true
   def handle_call({:set_angles, angles}, {pid, _tag}, state) do
     case state do
       %{user_pid: ^pid, status: :connected} ->
