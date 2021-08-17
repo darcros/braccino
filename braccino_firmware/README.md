@@ -1,32 +1,64 @@
 # BraccinoFirmware
 
-**TODO: Add description**
+Firmware for the Raspberry Pi 3b.
+This project also contains the arduino sketch inside `arduino-sketch`.
 
 ## Targets
 
-Nerves applications produce images for hardware targets based on the
-`MIX_TARGET` environment variable. If `MIX_TARGET` is unset, `mix` builds an
-image that runs on the host (e.g., your laptop). This is useful for executing
-logic tests, running utilities, and debugging. Other targets are represented by
-a short name like `rpi3` that maps to a Nerves system image for that platform.
-All of this logic is in the generated `mix.exs` and may be customized. For more
-information about targets see:
+This code has been written for, and tested only on, the Raspberry Pi 3b with an Arduino Due.
 
-https://hexdocs.pm/nerves/targets.html#content
+Using a different Nerves target will probably work.
 
-## Getting Started
+Using a different Arduino board will probably not work because the arduino sketch is uploaded using [`bossac`](https://github.com/shumatech/BOSSA/) which is made for ARM boards, so it won't work with AVR boards such as the Arduino Uno.
 
-To start your Nerves app:
-  * `export MIX_TARGET=my_target` or prefix every command with
-    `MIX_TARGET=my_target`. For example, `MIX_TARGET=rpi3`
-  * Install dependencies with `mix deps.get`
-  * Create firmware with `mix firmware`
-  * Burn to an SD card with `mix firmware.burn`
+## Arduino flashing
 
-## Learn more
+The compiled arduino sketch and the `bossac` tool are included in the firmware image at compile time (see the [Makefile](./Makefile)).
+When the Raspberry Pi boots, it will automatically flash the compiled sketch onto the Arduino Due using `bossac`.
 
-  * Official docs: https://hexdocs.pm/nerves/getting-started.html
-  * Official website: https://nerves-project.org/
-  * Forum: https://elixirforum.com/c/nerves-forum
-  * Discussion Slack elixir-lang #nerves ([Invite](https://elixir-slackin.herokuapp.com/))
-  * Source: https://github.com/nerves-project/nerves
+## Communication protocol
+
+The Arduino Due is connected to the Raspberry Pi via a USB cable and they communicate through UART.
+
+### Packet format
+
+- Each packet is [COBS](https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing) encoded.
+- The end of each packet is market by the `0x00` byte.
+
+#### General packet structure
+
+| Name             | Size (bytes) | Description                                   |
+| ---------------- | ------------ | --------------------------------------------- |
+| `packet_id`      | 1            | Packet id                                     |
+| packet fields... |              | Various packet fields depending on the packet |
+
+### Packet list
+
+#### Arduino Due -> Raspberry Pi
+
+#### `0x00` ready
+
+Sent to signal that the Arduino is ready (Braccio arm has been initialized and is ready to accept commands).
+This packet does not contain any data.
+This packet does not expect any response.
+
+| name      | type | value  | description |
+| --------- | ---- | ------ | ----------- |
+| packet_id | byte | `0x00` |             |
+
+#### Raspberry Pi -> Arduino Due
+
+#### `0x01` set angles
+
+Sent to the Arduino to set the Braccio position.
+This packet does not expect any response.
+
+| name      | type | value    | description                             |
+| --------- | ---- | -------- | --------------------------------------- |
+| packet_id | byte | `0x01`   |                                         |
+| base      | byte | 0 - 180  | Desired position of the base joint      |
+| shoulder  | byte | 15 - 165 | Desired position of the shoulder joint  |
+| elbow     | byte | 0 - 180  | Desired position of the elbow joint     |
+| wrist_ver | byte | 0 - 180  | Desired position of the wrist_ver joint |
+| wrist_rot | byte | 0 - 180  | Desired position of the wrist_rot joint |
+| gripper   | byte | 10 - 73  | Desired position of the gripper joint   |
